@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+.deposit-bg {
+    position: relative;
+    background: url("https://i.pinimg.com/736x/ad/fc/be/adfcbe1c9ac56d82b71513fea3e038a2.jpg") no-repeat center center fixed;
+    background-size: cover;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30px 0;
+}
+
+.deposit-bg::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.5);
+    z-index: 0;
+}
+
+.deposit-card {
+    position: relative;
+    z-index: 1;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(5px);
+    padding: 30px;
+    border-radius: 15px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+}
+</style>
+<div class="container mt-4">
+  <h3>Welcome, {{ request.user.username }}</h3>
+  <p>
+    <strong>Account:</strong> {{ profile.account_number }} |
+    <strong>Type:</strong> {{ profile.get_account_type_display }} |
+    <strong>Balance:</strong> ₹{{ profile.balance|floatformat:2 }}
+  </p>
+
+  <!-- Action Buttons -->
+  <div class="mb-4 d-flex flex-wrap gap-2">
+    <a href="{% url 'transfer' %}" class="btn btn-primary">
+      <i class="fas fa-exchange-alt"></i> Transfer
+    </a>
+    <a href="{% url 'deposit' %}" class="btn btn-success">
+      <i class="fas fa-piggy-bank"></i> Deposit
+    </a>
+    <a href="{% url 'withdraw' %}" class="btn btn-warning">
+      <i class="fas fa-money-bill-wave"></i> Withdraw
+    </a>
+    <a href="{% url 'history' %}" class="btn btn-info">
+      <i class="fas fa-history"></i> Transaction History
+    </a>
+  </div>
+
+  <!-- Child Account Management for Parent -->
+  {% if profile.is_parent %}
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+      <span>
+        <i class="fas fa-users"></i> Child Accounts / Family Wallet
+        {% if child_accounts %}
+          ({{ child_accounts|length }})
+        {% endif %}
+      </span>
+      <a href="{% url 'create_child' %}" class="btn btn-light btn-sm">
+        <i class="fas fa-plus"></i> Add Child Account
+      </a>
+    </div>
+    <div class="card-body">
+      {% if child_accounts %}
+      <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th>Username</th>
+              <th>Wallet ID</th>
+              <th>Balance</th>
+              <th>Spending Limit</th>
+              <th>Manage</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for child in child_accounts %}
+            <tr>
+              <td>{{ child.user.username }}</td>
+              <td>{{ child.account_number }}</td>
+              <td>₹{{ child.balance|floatformat:2 }}</td>
+              <td>
+                {% if child.spending_limit > 0 %}
+                  ₹{{ child.spending_limit|floatformat:2 }}
+                {% else %}
+                  No Limit
+                {% endif %}
+              </td>
+              <td class="d-flex flex-wrap gap-1">
+                <a href="{% url 'child_transactions' child.pk %}" class="btn btn-info btn-sm">
+                  <i class="fas fa-eye"></i> View
+                </a>
+                {% if child.is_closed %}
+                  <a href="{% url 'toggle_child_account' child.pk %}" class="btn btn-success btn-sm">
+                    <i class="fas fa-unlock"></i> Unlock
+                  </a>
+                {% else %}
+                  <a href="{% url 'toggle_child_account' child.pk %}" class="btn btn-danger btn-sm">
+                    <i class="fas fa-lock"></i> Lock
+                  </a>
+               {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <p class="text-muted">No child accounts found. Use "Add Child Account" to create one.</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Recent Transactions -->
+  <h5>Recent Transactions</h5>
+  <div class="table-responsive">
+    <table class="table table-striped table-hover shadow-sm align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>Date</th>
+          <th>Type</th>
+          <th>From</th>
+          <th>To</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tx in transactions %}
+        <tr>
+          <td>{{ tx.timestamp|date:"d-m-Y H:i" }}</td>
+          <td>{{ tx.get_transaction_type_display }}</td>
+
+          <!-- Fixed sender/receiver -->
+          <td>
+            {% if tx.sender %}
+              {{ tx.sender.user.username }}
+            {% else %}
+              N/A
+            {% endif %}
+          </td>
+
+          <td>
+            {% if tx.receiver %}
+              {{ tx.receiver.user.username }}
+            {% else %}
+              N/A
+            {% endif %}
+          </td>
+
+          <td>₹{{ tx.amount|floatformat:2 }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="text-center">No transactions yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

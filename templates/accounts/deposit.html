@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+  <h3>Deposit to your account</h3>
+  <form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label for="amount" class="form-label">Amount</label>
+      <input type="number" step="0.01" name="amount" id="amount" class="form-control" required>
+    </div>
+    <button type="submit" class="btn btn-success">Deposit</button>
+    <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock %}
